@@ -19,10 +19,6 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
-      - name: Debug Info
-        run:          echo "Event: ${{ github.event_name }}"
-          echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
-
       - name: Delete old workflow runs
         uses: actions/github-script@v6
         env:
