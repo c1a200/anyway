@@ -91,6 +91,6 @@ jobs:
             }
 
             cleanup().catch(err => {
-              console.error(`Error during cleanup: ${err}`);
+              console.error(`Error during cleanup:${err}`);
               process.exit(1);
             });
