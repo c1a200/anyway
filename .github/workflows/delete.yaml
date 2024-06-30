@@ -26,7 +26,7 @@ jobs:
         with:
           script: 
             const { Octokit } = require("@octokit/rest");
-            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+            const octokit = new Octokit({ auth:process.env.GITHUB_TOKEN });
 
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
             const retainDays = parseInt(process.env.RETAIN_DAYS, 10);
@@ -37,7 +37,7 @@ jobs:
               const result = await octokit.actions.listWorkflowRunsForRepo({
                 owner,
                 repo,
-                per_page: perPage,
+                per_page:perPage,
                 page,
               });
               return result.data.workflow_runs;
@@ -47,9 +47,9 @@ jobs:
               await octokit.actions.deleteWorkflowRun({
                 owner,
                 repo,
-                run_id: runId,
+                run_id:runId,
               });
-              console.log(`Deleted run: ${runId}`);
+              console.log(`Deleted run:${runId}`);
             }
 
             async function cleanup() {
@@ -70,10 +70,10 @@ jobs:
                   deletedCount++;
                 }
               }
-              console.log(`Total deleted workflow runs: ${deletedCount}`);
+              console.log(`Total deleted workflow runs:${deletedCount}`);
             }
 
             cleanup().catch(err => {
-              console.error(`Error during cleanup: ${err}`);
+              console.error(`Error during cleanup:${err}`);
               process.exit(1);
             });
