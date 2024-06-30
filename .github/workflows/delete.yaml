@@ -2,8 +2,8 @@ name: Delete
 # 定义触发事件，包括定时触发和手动触发，手动触发时只保留一天的数据，自动执行时保留7天的数据。
 on:
   schedule:
-    # 每周日午夜定时触发
-    - cron: "0 0 * * SUN"
+    # 每周日午夜5时触发
+    - cron: "0 5 * * SUN"
   workflow_dispatch: # 手动触发
 
 jobs:
