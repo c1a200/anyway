@@ -14,7 +14,7 @@ jobs:
       RETAIN_DAYS_AUTO: 7
       RETAIN_DAYS_MANUAL: 0
     steps:
-      # 如果是手动触发，就设置保留天数为1
+      # 如果是手动触发，就设置保留天数为0
       - name: Set retention days for manual trigger
         if: github.event_name == 'workflow_dispatch'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_MANUAL }}" >> $GITHUB_ENV
