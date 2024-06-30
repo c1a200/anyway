@@ -24,7 +24,7 @@ jobs:
         env:
           GIST_PAT: ${{ secrets.GIST_PAT }}
           GIST_LINK: ${{ secrets.GIST_LINK }}
-        run: python main/subscribe/clash2vray.py 
+        run: python -u subscribe/clash2vray.py 
 
       - name: Timestamp
         run: date
