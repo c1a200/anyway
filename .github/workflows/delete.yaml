@@ -21,7 +21,8 @@ jobs:
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
       - name: Debug Info
-        run:          echo "Event: ${{ github.event_name }}"
+        run:          
+          echo "Event: ${{ github.event_name }}"
           echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
 
       - name: List and delete old workflow runs
