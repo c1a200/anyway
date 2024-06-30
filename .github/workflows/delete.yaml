@@ -20,51 +20,32 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
+      - name: Debug Info
+        run:          echo "Event: ${{ github.event_name }}"
+          echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
+
       - name: List and delete old workflow runs
-        uses: actions/github-script@v6
-        with:
-          script: const { Octokit } = require("@octokit/rest");
-            const octokit = new Octokit({
-              auth:process.env.GITHUB_TOKEN
-            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:          retain_days=${{ env.RETAIN_DAYS }}
+          cutoff_date=$(date -d "-$retain_days days" +%s)
 
-            const daysToMillis = days => days * 24 * 60 * 60 * 1000;
-            const retainDays = parseInt(process.env.RETAIN_DAYS);
-            const cutoffDate = new Date(Date.now() - daysToMillis(retainDays));
-
-            const getRuns = async (page) => {
-              const runs = await octokit.actions.listWorkflowRunsForRepo({
-                owner:context.repo.owner,
-                repo:context.repo.repo,
-                per_page:100,
-                page:page
-              });
-              return runs.data.workflow_runs;
-            };
-
-            const deleteRun = async (runId) => {
-              await octokit.actions.deleteWorkflowRun({
-                owner:context.repo.owner,
-                repo:context.repo.repo,
-                run_id:runId
-              });
-            };
-
-            const cleanup = async () => {
-              let page = 1;
-              let runs;
-              do {
-                runs = await getRuns(page);
-                for (const run of runs) {
-                  if (new Date(run.created_at) < cutoffDate && run.status !== 'in_progress' && run.status !== 'queued') {
-                    console.log(`Deleting run:${run.id} created at:${run.created_at}`);
-                    await deleteRun(run.id);
-                  }
-                }
-                page += 1;
-              } while (runs.length > 0);
-            };
-
-            cleanup().catch(error => {
-              console.error(`Error deleting runs:${error.message}`);
-            });
+          page=1
+          while true; do
+            runs=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100&page=$page" jq -c '.workflow_runs[]')
+            [ -z "$runs" ] && break
+            echo "$runs" while IFS= read -r run; do
+                created_at=$(echo $run jq -r '.created_at')
+                run_id=$(echo $run jq -r '.id')
+                if [ "$(date -d "$created_at" +%s)" -lt "$cutoff_date" ]; then
+                    status=$(echo $run jq -r '.status')
+                    if [ "$status" != "in_progress" ] && [ "$status" != "queued" ]; then
+                        echo "Deleting run $run_id created at $created_at (status: $status)"
+                        curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                            "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id"
+                    fi
+                fi
+            done
+            page=$((page + 1))
+          done
