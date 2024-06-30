@@ -296,7 +296,19 @@ def aggregate(args: argparse.Namespace) -> None:
         if len(nodes) <= 0:
             logger.error(f"cannot fetch any proxy")
             sys.exit(0)
-
+            
+  # 添加更新日期节点
+    current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    date_node = {
+        "name": f"Update Date: {current_date}",
+        "type": "ss",
+        "server": "127.0.0.1",
+        "port": 12345,
+        "cipher": "aes-128-gcm",
+        "password": "example_password"
+    }
+    nodes.insert(0, date_node)
+    
     subscriptions = set()
     for p in proxies:
         # 移除无用的标记
