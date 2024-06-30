@@ -31,4 +31,4 @@ jobs:
           token: ${{ secrets.GIST_PAT }} # 使用存储在 secrets 中的 Personal Access Token
           repository: ${{ github.repository }} # 当前仓库的名称
           retain_days: ${{ env.RETAIN_DAYS }} # 动态保留天数，根据触发类型不同而不同
-          keep_minimum_runs: 1
+          keep_minimum_runs: 3
