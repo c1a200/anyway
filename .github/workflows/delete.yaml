@@ -1,15 +1,27 @@
 name: Delete
 on:
-  schedule:
-    - cron: "0 0 * * SUN"
+workflow_dispatch:
 
 jobs:
   del_runs:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete
-        uses: GitRML/delete-workflow-runs@main
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 30
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: List all workflow runs
+        id: list_runs
+        run:          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100" \
+            jq -r '.workflow_runs[] .id' > run_ids.txt
+
+      - name: Delete all but latest workflow run
+        run:          RUN_IDS=$(cat run_ids.txt)
+          LATEST_RUN_ID=$(echo "$RUN_IDS" head -n 1)
+          
+          for RUN_ID in $RUN_IDS; do
+            if [ "$RUN_ID" != "$LATEST_RUN_ID" ]; then
+              curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$RUN_ID"
+            fi
+          done
