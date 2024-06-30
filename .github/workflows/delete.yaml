@@ -32,14 +32,14 @@ jobs:
 
             const getRuns = async (page) => {
               const response = await axios.get(`https://api.github.com/repos/${{ github.repository }}/actions/runs`, {
-                headers: {
-                  Authorization: `Bearer ${{ secrets.GITHUB_TOKEN }}`,
-                  'Content-Type': 'application/json',
-                  Accept: 'application/vnd.github.v3+json',
+                headers:{
+                  Authorization:`Bearer ${{ secrets.GITHUB_TOKEN }}`,
+                  'Content-Type':'application/json',
+                  Accept:'application/vnd.github.v3+json',
                 },
-                params: {
-                  per_page: 100,
-                  page: page,
+                params:{
+                  per_page:100,
+                  page:page,
                 },
               });
               return response.data.workflow_runs;
@@ -47,10 +47,10 @@ jobs:
 
             const deleteRun = async (runId) => {
               const response = await axios.delete(`https://api.github.com/repos/${{ github.repository }}/actions/runs/${runId}`, {
-                headers: {
-                  Authorization: `Bearer ${{ secrets.GITHUB_TOKEN }}`,
-                  'Content-Type': 'application/json',
-                  Accept: 'application/vnd.github.v3+json',
+                headers:{
+                  Authorization:`Bearer ${{ secrets.GITHUB_TOKEN }}`,
+                  'Content-Type':'application/json',
+                  Accept:'application/vnd.github.v3+json',
                 },
               });
               return response.status === 204;
@@ -69,9 +69,9 @@ jobs:
                 if (new Date(run.created_at) < cutoffDate && run.status !== 'in_progress' && run.status !== 'queued') {
                   const deleted = await deleteRun(run.id);
                   if (deleted) {
-                    console.log(`Deleted run: ${run.id}`);
+                    console.log(`Deleted run:${run.id}`);
                   } else {
-                    console.log(`Failed to delete run: ${run.id}`);
+                    console.log(`Failed to delete run:${run.id}`);
                   }
                 }
               }
