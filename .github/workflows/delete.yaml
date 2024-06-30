@@ -14,6 +14,16 @@ jobs:
       RETAIN_DAYS_AUTO: 7
       RETAIN_DAYS_MANUAL: 1
     steps:
+    # 设置 Node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '14' # 或其他你需要的版本
+
+      # 安装 Octokit
+      - name: Install Octokit
+        run: npm install @octokit/rest
+        
       # 如果是手动触发，就设置保留天数为1
       - name: Set retention days for manual trigger
         if: github.event_name == 'workflow_dispatch'
