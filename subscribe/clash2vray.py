@@ -4,7 +4,7 @@ import base64
 import json
 import os
 import sys
-import datetime
+from datetime import datetime
 
 def fetch_gist_content(gist_url, headers):
     response = requests.get(gist_url, headers=headers)
@@ -69,12 +69,22 @@ def main():
     try:
         v2ray_nodes = clash_to_v2ray(clash_config)
 
-        # 获取当前日期并创建一个特定的 V2Ray 节点记录
-        current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        date_node = f"vmess://{base64.urlsafe_b64encode(json.dumps({'v': '2', 'ps': 'Update Date', 'add': current_date}).encode()).decode()}"
-
-        # 将日期节点插入到 v2ray_nodes 列表的开头
-        v2ray_nodes.insert(0, date_node)
+        # 添加更新日期的 V2Ray 地址记录
+        current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        update_v2ray_node = {
+            "v": "2",
+            "ps": f"Update Date: {current_date}",
+            "add": "127.0.0.1",
+            "port": "0",
+            "id": "00000000-0000-0000-0000-000000000000",
+            "aid": "0",
+            "net": "tcp",
+            "type": "none",
+            "host": "",
+            "path": "",
+            "tls": ""
+        }
+        v2ray_nodes.insert(0, "vmess://" + base64.urlsafe_b64encode(json.dumps(update_v2ray_node).encode()).decode())
 
         combined_v2ray_content = "\n".join(v2ray_nodes)
 
