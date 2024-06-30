@@ -1,19 +1,34 @@
-name: Delete old workflow runs
+name: Delete
+# 定义触发事件，包括定时触发和手动触发，手动触发时只保留一天的数据，自动执行时保留7天的数据。
 on:
-  workflow_dispatch:
-    inputs:
-      days:
-        description: 'Number of days.'
-        required: true
-        default: 1
+  schedule:
+    # 每周日午夜定时触发
+    - cron: "0 0 * * SUN"
+  workflow_dispatch: # 手动触发
 
 jobs:
   del_runs:
     runs-on: ubuntu-latest
+    env:
+      # 定义环境变量，分别用于自动和手动触发情况下的保留天数
+      RETAIN_DAYS_AUTO: 7
+      RETAIN_DAYS_MANUAL: 1
     steps:
-      - name: Delete workflow runs
+      # 如果是手动触发，就设置保留天数为1
+      - name: Set retention days for manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_MANUAL }}" >> $GITHUB_ENV
+
+      # 如果是定时触发，就设置保留天数为7
+      - name: Set retention days for scheduled trigger
+        if: github.event_name == 'schedule'
+        run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
+
+      # 执行删除操作，使用上一步设置的环境变量作为保留天数
+      - name: Delete old workflow runs
         uses: GitRML/delete-workflow-runs@main
         with:
-          token: ${{ secrets.GIST_PAT}}
-          repository: ${{ github.repository }}
-          retain_days: ${{ github.event.inputs.days }}
+          token: ${{ secrets.GIST_PAT }} # 使用存储在 secrets 中的 Personal Access Token
+          repository: ${{ github.repository }} # 当前仓库的名称
+          retain_days: ${{ env.RETAIN_DAYS }} # 动态保留天数，根据触发类型不同而不同
+          keep_minimum_runs: 1
