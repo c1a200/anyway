@@ -20,64 +20,62 @@ jobs:
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
       - name: Debug Info
-        run: 
-          echo "Event: ${{ github.event_name }}"
-          echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
+        run:          echo "Event:${{ github.event_name }}"
+          echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
 
       - name: Delete old workflow runs
         uses: actions/github-script@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GIST_PAT }}
         with:
-          script: 
-            const { Octokit } = require('@octokit/rest');
-            const owner = process.env.GITHUB_REPOSITORY.split('/')[0];
-            const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+          script:            const { Octokit } = require("@octokit/rest");
+            const owner = process.env.GITHUB_REPOSITORY.split("/")[0];
+            const repo = process.env.GITHUB_REPOSITORY.split("/")[1];
             const retainDays = parseInt(process.env.RETAIN_DAYS, 10);
             const cutoffDate = new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000));
             const octokit = new Octokit({ auth:process.env.GITHUB_TOKEN });
 
             (async function() {
-                async function listWorkflowRuns(page = 1, perPage = 100) {
-                  const result = await octokit.actions.listWorkflowRunsForRepo({
-                    owner,
-                    repo,
-                    per_page:perPage,
-                    page,
-                  });
-                  return result.data.workflow_runs;
-                }
+              async function listWorkflowRuns(page = 1, perPage = 100) {
+                const result = await octokit.actions.listWorkflowRunsForRepo({
+                  owner,
+                  repo,
+                  per_page:perPage,
+                  page,
+                });
+                return result.data.workflow_runs;
+              }
 
-                async function deleteWorkflowRun(runId) {
-                  await octokit.actions.deleteWorkflowRun({
-                    owner,
-                    repo,
-                    run_id:runId,
-                  });
-                  console.log(`Deleted run:${runId}`);
-                }
+              async function deleteWorkflowRun(runId) {
+                await octokit.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id:runId,
+                });
+                console.log(`Deleted run:${runId}`);
+              }
 
-                try {
-                  let page = 1;
-                  let runs = [];
-                  let fetchedRuns = [];
-                  do {
-                    fetchedRuns = await listWorkflowRuns(page++);
-                    runs = runs.concat(fetchedRuns);
-                  } while (fetchedRuns.length > 0);
+              try {
+                let page = 1;
+                let runs = [];
+                let fetchedRuns = [];
+                do {
+                  fetchedRuns = await listWorkflowRuns(page++);
+                  runs = runs.concat(fetchedRuns);
+                } while (fetchedRuns.length > 0);
 
-                  runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-                  let deletedCount = 0;
-                  for (const run of runs) {
-                    if (new Date(run.created_at) < cutoffDate && (run.conclusion === 'success' run.conclusion === 'failure')) {
-                      await deleteWorkflowRun(run.id);
-                      deletedCount++;
-                    }
+                let deletedCount = 0;
+                for (const run of runs) {
+                  if (new Date(run.created_at) < cutoffDate && (run.conclusion === 'success' run.conclusion === 'failure')) {
+                    await deleteWorkflowRun(run.id);
+                    deletedCount++;
                   }
-                  console.log(`Total deleted workflow runs:${deletedCount}`);
-                } catch (err) {
-                  console.error(`Error during cleanup:${err}`);
-                  process.exit(1);
                 }
+                console.log(`Total deleted workflow runs:${deletedCount}`);
+              } catch (err) {
+                console.error(`Error during cleanup:${err}`);
+                process.exit(1);
+              }
             })();
