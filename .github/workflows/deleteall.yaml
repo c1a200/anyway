@@ -8,22 +8,21 @@ jobs:
   del_runs:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
+      
       - name: List all workflow runs
         id: list_runs
         run:          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/runs?per_page=100" \
             jq -r '.workflow_runs[] .id' > run_ids.txt
 
+      - name: Keep the latest workflow run
+        run:          mapfile -t RUN_IDS < run_ids.txt
+          LATEST_RUN_ID=${RUN_IDS[0]}
+          echo "Latest run ID: $LATEST_RUN_ID"
+
       - name: Delete all but latest workflow run
-        run:          RUN_IDS=$(cat run_ids.txt)
-          LATEST_RUN_ID=$(echo "$RUN_IDS" head -n 1)
-          
-          for RUN_ID in $RUN_IDS; do
-            if [ "$RUN_ID" != "$LATEST_RUN_ID" ]; then
-              curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+        run:          for RUN_ID in $(tail -n +2 run_ids.txt); do
+            echo "Deleting run ID: $RUN_ID"
+            curl -s -X DELETE -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/actions/runs/$RUN_ID"
-            fi
           done
