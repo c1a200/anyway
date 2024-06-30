@@ -37,9 +37,10 @@ jobs:
         run: pip3 install -r requirements.txt
 
       - name: Check Variables
-        run:          if [ -z "$GIST_PAT" ]; then
+        run: |
+          if [ -z "$GIST_PAT" ]; then
               echo "Error: environment 'GIST_PAT' cannot be empty"
-              exit 1
+              exit 1      
           fi
           if [ -z "$GIST_LINK" ]; then
               echo "Error: environment 'GIST_LINK' cannot be empty"
