@@ -1,5 +1,5 @@
 name: Delete
-# 定义触发事件，包括定时触发和手动触发，手动触发时只保留一天的数据，自动执行时保留7天的数据。
+# 定义触发事件，包括定时触发和手动触发。手动触发时保留一天的数据，定时触发时保留7天的数据。
 on:
   schedule:
     # 每周日午夜定时触发
@@ -24,15 +24,65 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
-      # 输出调试信息，确认设置是否正确（推荐）
+      # 输出调试信息，确认设置是否正确
       - name: Debug Info
         run: echo "Event:${{ github.event_name }}"
           echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
-
-      # 执行删除操作，使用上一步设置的环境变量作为保留天数
+          
+      # 使用 GitHub Script 删除旧的 workflow 运行
       - name: Delete old workflow runs
-        uses: GitRML/delete-workflow-runs@main
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GIST_PAT }} # 使用存储在 secrets 中的 Personal Access Token
-          repository: ${{ github.repository }} # 当前仓库的名称
-          retain_days: ${{ env.RETAIN_DAYS }} # 动态保留天数，根据触发类型不同而不同
+          script:            const { Octokit } = require("@octokit/rest");
+            const octokit = new Octokit({ auth:process.env.GITHUB_TOKEN });
+
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+            const retainDays = parseInt(process.env.RETAIN_DAYS, 10);
+            const cutoffDate = new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000));
+
+            async function listWorkflowRuns(page = 1, per_page = 100) {
+              const result = await octokit.actions.listWorkflowRunsForRepo({
+                owner,
+                repo,
+                per_page,
+                page,
+              });
+              return result.data.workflow_runs;
+            }
+
+            async function deleteWorkflowRun(runId) {
+              await octokit.actions.deleteWorkflowRun({
+                owner,
+                repo,
+                run_id:runId,
+              });
+              console.log(`Deleted run:${runId}`);
+            }
+
+            async function cleanup() {
+              let page = 1;
+              let runs = [];
+              let fetchedRuns = [];
+
+              // Fetch all workflow runs
+              do {
+                fetchedRuns = await listWorkflowRuns(page++);
+                runs = runs.concat(fetchedRuns);
+              } while (fetchedRuns.length > 0);
+
+              // Sort runs by creation date descending
+              runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              for (const run of runs) {
+                if (new Date(run.created_at) < cutoffDate && run.status !== "in_progress" && run.status !== "queued") {
+                  await deleteWorkflowRun(run.id);
+                }
+              }
+            }
+
+            cleanup().catch(err => {
+              console.error(`Error during cleanup:${err}`);
+              process.exit(1);
+            });
