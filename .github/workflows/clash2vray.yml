@@ -1,4 +1,5 @@
 name: Clash2V2ray
+
 on:
   schedule:
     - cron: "0 1 * * *"  # 每天 01:00 执行一次
@@ -24,7 +25,7 @@ jobs:
         env:
           GIST_PAT: ${{ secrets.GIST_PAT }}
           GIST_LINK: ${{ secrets.GIST_LINK }}
-        run: python -u subscribe/clash2vray.py 
+        run: python -u subscribe/clash2vray.py
 
       - name: Timestamp
         run: date
