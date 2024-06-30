@@ -24,9 +24,9 @@ jobs:
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
       - name: Debug Info
-        run:          echo "Event: ${{ github.event_name }}"
-          echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
-          echo "RETAIN_RUNS: ${{ env.RETAIN_RUNS }}"
+        run:          echo "Event:${{ github.event_name }}"
+          echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
+          echo "RETAIN_RUNS:${{ env.RETAIN_RUNS }}"
 
       - name: Delete old workflow runs
         uses: actions/github-script@v6
@@ -34,19 +34,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           script:            const { Octokit } = require("@octokit/rest");
-            const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+            const octokit = new Octokit({ auth:process.env.GITHUB_TOKEN });
             const repo = process.env.GITHUB_REPOSITORY.split("/");
             const owner = repo[0];
             const repoName = repo[1];
 
             const retainRuns = parseInt(process.env.RETAIN_RUNS) 0;
             const retainDays = parseInt(process.env.RETAIN_DAYS) 0;
-            const cutoffDate = retainDays ? new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000)) : null;
+            const cutoffDate = retainDays ? new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000)) :null;
 
             async function listWorkflowRuns(page = 1, per_page = 100) {
               const result = await octokit.actions.listWorkflowRunsForRepo({
                 owner,
-                repo: repoName,
+                repo:repoName,
                 per_page,
                 page,
               });
@@ -56,10 +56,10 @@ jobs:
             async function deleteWorkflowRun(runId) {
               await octokit.actions.deleteWorkflowRun({
                 owner,
-                repo: repoName,
-                run_id: runId,
+                repo:repoName,
+                run_id:runId,
               });
-              console.log(`Deleted run: ${runId}`);
+              console.log(`Deleted run:${runId}`);
             }
 
             async function cleanup() {
@@ -92,6 +92,6 @@ jobs:
             }
 
             cleanup().catch(err => {
-              console.error(`Error during cleanup: ${err}`);
+              console.error(`Error during cleanup:${err}`);
               process.exit(1);
             });
