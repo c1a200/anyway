@@ -45,10 +45,15 @@ jobs:
               echo "Error: environment 'GIST_LINK' cannot be empty"
               exit 1
           fi
-          LINK_PARTS=$(echo "$GIST_LINK" awk -F'/' 'NF==2 && $1!="" && $2!=""')
-          if [ -z "$LINK_PARTS" ]; then
+          LINK_PARTS=$(echo "$GIST_LINK" awk -F'/' '{if (NF==2 && $1!="" && $2!="") print 1; else print 0}')
+          if [ "$LINK_PARTS" -ne 1 ]; then
               echo "Error: environment 'GIST_LINK' is not valid, should be 'username/gist_id' format"
               exit 1
+          fi
+          if [ -z "$CUSTOMIZE_LINK" ]; then
+              echo "Error: environment 'CUSTOMIZE_LINK' cannot be empty"
+              exit 1
+          fi
 
       - name: Convert to V2ray Subscriptions
         run: python -u collectvray.py
