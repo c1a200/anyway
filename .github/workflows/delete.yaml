@@ -31,9 +31,9 @@ jobs:
           script:            const axios = require('axios');
 
             const getRuns = async (page) => {
-              const response = await axios.get(`${github.apiUrl}/repos/${github.repository.owner}/${github.repository.repo}/actions/runs`, {
+              const response = await axios.get(`https://api.github.com/repos/${{ github.repository }}/actions/runs`, {
                 headers: {
-                  Authorization: `Bearer ${secrets.GITHUB_TOKEN}`,
+                  Authorization: `Bearer ${{ secrets.GITHUB_TOKEN }}`,
                   'Content-Type': 'application/json',
                   Accept: 'application/vnd.github.v3+json',
                 },
@@ -46,9 +46,9 @@ jobs:
             };
 
             const deleteRun = async (runId) => {
-              const response = await axios.delete(`${github.apiUrl}/repos/${github.repository.owner}/${github.repository.repo}/actions/runs/${runId}`, {
+              const response = await axios.delete(`https://api.github.com/repos/${{ github.repository }}/actions/runs/${runId}`, {
                 headers: {
-                  Authorization: `Bearer ${secrets.GITHUB_TOKEN}`,
+                  Authorization: `Bearer ${{ secrets.GITHUB_TOKEN }}`,
                   'Content-Type': 'application/json',
                   Accept: 'application/vnd.github.v3+json',
                 },
