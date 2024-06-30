@@ -14,16 +14,6 @@ jobs:
       RETAIN_DAYS_AUTO: 7
       RETAIN_DAYS_MANUAL: 1
     steps:
-    # 设置 Node.js 环境
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '14' # 或其他你需要的版本
-
-      # 安装 Octokit
-      - name: Install Octokit
-        run: npm install @octokit/rest
-        
       # 如果是手动触发，就设置保留天数为1
       - name: Set retention days for manual trigger
         if: github.event_name == 'workflow_dispatch'
@@ -36,10 +26,9 @@ jobs:
 
       # 输出调试信息，确认设置是否正确
       - name: Debug Info
-        run: echo "Event:${{ github.event_name }}"
-          echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
-          
-      # 使用 GitHub Script 删除旧的 workflow 运行
+        run: echo "Event:${{ github.event_name }}" && echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
+
+      # 使用 GitHub Script 执行自定义删除操作
       - name: Delete old workflow runs
         uses: actions/github-script@v6
         env:
@@ -52,11 +41,11 @@ jobs:
             const retainDays = parseInt(process.env.RETAIN_DAYS, 10);
             const cutoffDate = new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000));
 
-            async function listWorkflowRuns(page = 1, per_page = 100) {
+            async function listWorkflowRuns(page = 1, perPage = 100) {
               const result = await octokit.actions.listWorkflowRunsForRepo({
                 owner,
                 repo,
-                per_page,
+                per_page:perPage,
                 page,
               });
               return result.data.workflow_runs;
@@ -83,7 +72,7 @@ jobs:
               } while (fetchedRuns.length > 0);
 
               // Sort runs by creation date descending
-              runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+              runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
               for (const run of runs) {
                 if (new Date(run.created_at) < cutoffDate && run.status !== "in_progress" && run.status !== "queued") {
