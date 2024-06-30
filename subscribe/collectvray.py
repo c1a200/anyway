@@ -52,9 +52,8 @@ def main():
     if not gist_pat or not gist_link:
         print("Error: Environment variables GIST_PAT and GIST_LINK must be set", file=sys.stderr)
         sys.exit(1)
-
+    
     custom_links = get_custom_links(customize_link)
-    clash_content = []
     v2ray_content = []
 
     for link in custom_links:
@@ -62,17 +61,15 @@ def main():
             response = requests.get(link)
             response.raise_for_status()
             clash_config = response.text
-            clash_content.append(clash_config)
             v2ray_config = clash_to_v2ray(clash_config)
             v2ray_subscription = generate_v2ray_subscription(v2ray_config)
             v2ray_content.append(v2ray_subscription)
         except requests.exceptions.RequestException as e:
             print(f"Error fetching clash config from link {link}: {e}", file=sys.stderr)
 
-    if clash_content and v2ray_content:
-        combined_clash_content = "\n".join(clash_content)
+    if v2ray_content:
         combined_v2ray_content = "\n".join(v2ray_content)
-
+        
         headers = {
             'Authorization': f'token {gist_pat}'
         }
@@ -85,13 +82,8 @@ def main():
         gist_content = gist_response.json()
         files_content = gist_content.get('files', {})
 
-        # 更新或添加 Clash 文件内容
-        for filename in files_content:
-            if 'clash' in filename:
-                files_content[filename]['content'] = combined_clash_content
-
         # 更新或添加 V2ray 文件内容
-        files_content['v2ray_subscribe.txt'] = {
+        files_content['v2ray.txt'] = {
             "content": combined_v2ray_content
         }
 
