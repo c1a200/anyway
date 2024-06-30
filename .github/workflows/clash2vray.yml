@@ -2,7 +2,7 @@ name: Clash2V2ray
 
 on:
   schedule:
-    - cron: "0 3 */2 * *"  # 每隔两天早上 03:00 执行一次
+    - cron: "0 3 * * *"  # 每天早上 3:00 执行一次
   workflow_dispatch:
 
 jobs:
