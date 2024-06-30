@@ -22,7 +22,6 @@ jobs:
       - name: Set retention strategy for scheduled trigger
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
-
       - name: Debug Info
         run:          echo "Event:${{ github.event_name }}"
           echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
