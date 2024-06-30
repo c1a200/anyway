@@ -2,7 +2,7 @@ name: Delete
 on:
   schedule:
     - cron: "0 0 * * SUN"
-
+    
 jobs:
   del_runs:
     runs-on: ubuntu-latest
