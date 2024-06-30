@@ -8,7 +8,6 @@ jobs:
   del_runs:
     runs-on: ubuntu-latest
     steps:
-      
       - name: List all workflow runs
         id: list_runs
         run:          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -16,7 +15,7 @@ jobs:
             jq -r '.workflow_runs[] .id' > run_ids.txt
 
       - name: Keep the latest workflow run
-        run:          mapfile -t RUN_IDS < run_ids.txt
+        run:          readarray -t RUN_IDS < run_ids.txt
           LATEST_RUN_ID=${RUN_IDS[0]}
           echo "Latest run ID: $LATEST_RUN_ID"
 
