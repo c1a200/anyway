@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import sys
+import datetime
 
 def fetch_gist_content(gist_url, headers):
     response = requests.get(gist_url, headers=headers)
@@ -67,6 +68,14 @@ def main():
     # 将 Clash 转换为 V2Ray 并组合节点
     try:
         v2ray_nodes = clash_to_v2ray(clash_config)
+
+        # 获取当前日期并创建一个特定的 V2Ray 节点记录
+        current_date = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        date_node = f"vmess://{base64.urlsafe_b64encode(json.dumps({'v': '2', 'ps': 'Update Date', 'add': current_date}).encode()).decode()}"
+
+        # 将日期节点插入到 v2ray_nodes 列表的开头
+        v2ray_nodes.insert(0, date_node)
+
         combined_v2ray_content = "\n".join(v2ray_nodes)
 
         # 更新 Gist 中的 v2ray.txt 文件
