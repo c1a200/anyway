@@ -14,6 +14,12 @@ jobs:
       RETAIN_DAYS_AUTO: 7
       RETAIN_DAYS_MANUAL: 1
     steps:
+      # 设置 node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' 
+
       # 如果是手动触发，就设置保留天数为1
       - name: Set retention days for manual trigger
         if: github.event_name == 'workflow_dispatch'
@@ -26,7 +32,7 @@ jobs:
 
       # 输出调试信息，确认设置是否正确（推荐）
       - name: Debug Info
-        run: echo "Event:${{ github.event_name }}"
+        run:          echo "Event:${{ github.event_name }}"
           echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
 
       # 执行删除操作，使用上一步设置的环境变量作为保留天数
