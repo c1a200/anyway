@@ -1,7 +1,4 @@
 import requests
-import yaml
-import base64
-import json
 import os
 import sys
 from datetime import datetime
@@ -16,88 +13,52 @@ def update_gist_content(gist_url, headers, files_update):
     response.raise_for_status()
     return response.json()
 
-def clash_to_v2ray(clash_config):
-    proxies = clash_config.get('proxies', [])
-    v2ray_nodes = []
-    for proxy in proxies:
-        v2ray_node = {
-            "v": "2",
-            "ps": proxy.get("name", ""),
-            "add": proxy.get("server", ""),
-            "port": str(proxy.get("port", "")),
-            "id": proxy.get("uuid", ""),
-            "aid": str(proxy.get("alterId", "0")),
-            "net": proxy.get("network", "tcp"),
-            "type": "none",
-            "host": proxy.get("host", ""),
-            "path": proxy.get("path", ""),
-            "tls": "tls" if proxy.get("tls", False) else ""
-        }
-        v2ray_nodes.append("vmess://" + base64.urlsafe_b64encode(json.dumps(v2ray_node).encode()).decode())
-    return v2ray_nodes
-
 def main():
     gist_pat = os.getenv("GIST_PAT")
-    clash_gist_link = os.getenv("GIST_LINK")
+    gist_link = os.getenv("GIST_LINK")
     v2ray_gist_link = os.getenv("V2RAY_GIST_LINK")
 
-    if not gist_pat or not clash_gist_link or not v2ray_gist_link:
+    if not gist_pat or not gist_link or not v2ray_gist_link:
         print("Error: Environment variables GIST_PAT, GIST_LINK and V2RAY_GIST_LINK must be set", file=sys.stderr)
         sys.exit(1)
 
     headers = {
         'Authorization': f'token {gist_pat}'
     }
-    clash_gist_id = clash_gist_link.split('/')[-1]
-    clash_gist_url = f'https://api.github.com/gists/{clash_gist_id}'
+
+    gist_id = gist_link.split('/')[-1]
+    gist_url = f'https://api.github.com/gists/{gist_id}'
     v2ray_gist_id = v2ray_gist_link.split('/')[-1]
     v2ray_gist_url = f'https://api.github.com/gists/{v2ray_gist_id}'
 
-    # 获取 Gist 内容并读取 clash.yaml 文件
+    # 获取 Gist 内容并读取 v2ray.txt 文件
     try:
-        gist_content = fetch_gist_content(clash_gist_url, headers)
-        if 'clash.yaml' not in gist_content['files']:
-            print("Error: clash.yaml not found in the Gist", file=sys.stderr)
+        gist_content = fetch_gist_content(gist_url, headers)
+        if 'v2ray.txt' not in gist_content['files']:
+            print("Error: v2ray.txt not found in the Gist", file=sys.stderr)
             sys.exit(1)
-        clash_config_content = gist_content['files']['clash.yaml']['content']
-        clash_config = yaml.safe_load(clash_config_content)
+        v2ray_content = gist_content['files']['v2ray.txt']['content']
     except Exception as e:
-        print(f"Error fetching or parsing clash.yaml: {e}", file=sys.stderr)
+        print(f"Error fetching or reading v2ray.txt: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 将 Clash 转换为 V2Ray 并组合节点
+    # 添加更新日期的记录
     try:
-        v2ray_nodes = clash_to_v2ray(clash_config)
-
-        # 添加更新日期的 V2Ray 地址记录
         current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        update_v2ray_node = {
-            "v": "2",
-            "ps": f"Update Date: {current_date}",
-            "add": "127.0.0.1",
-            "port": "0",
-            "id": "00000000-0000-0000-0000-000000000000",
-            "aid": "0",
-            "net": "tcp",
-            "type": "none",
-            "host": "",
-            "path": "",
-            "tls": ""
-        }
-        v2ray_nodes.insert(0, "vmess://" + base64.urlsafe_b64encode(json.dumps(update_v2ray_node).encode()).decode())
+        date_record = f"vmess://{base64.urlsafe_b64encode(json.dumps({'ps': f'Update Date: {current_date}', 'add': '127.0.0.1', 'port': '0', 'id': '00000000-0000-0000-0000-000000000000', 'aid': '0', 'net': 'tcp', 'type': 'none', 'host': '', 'path': '', 'tls': ''}).encode()).decode()}\n"
 
-        combined_v2ray_content = "\n".join(v2ray_nodes)
+        updated_v2ray_content = date_record + v2ray_content
 
         # 更新 Gist 中的 v2ray.txt 文件
         files_update = {
             'v2ray.txt': {
-                'content': combined_v2ray_content
+                'content': updated_v2ray_content
             }
         }
         update_gist_content(v2ray_gist_url, headers, files_update)
-        print("Successfully updated the Gist with new V2ray content.")
+        print("Successfully updated the Gist with new content.")
     except Exception as e:
-        print(f"Error converting Clash config or updating Gist: {e}", file=sys.stderr)
+        print(f"Error updating Gist: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
