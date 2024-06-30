@@ -1,87 +1,15 @@
 name: Delete
-# 定义触发事件，包括定时触发和手动触发。手动触发时保留一天的数据，定时触发时保留7天的数据。
 on:
   schedule:
-    # 每周日午夜定时触发
     - cron: "0 0 * * SUN"
-  workflow_dispatch: # 手动触发
 
 jobs:
   del_runs:
     runs-on: ubuntu-latest
-    env:
-      # 定义环境变量，分别用于自动和手动触发情况下的保留天数
-      RETAIN_DAYS_AUTO: 7
-      RETAIN_DAYS_MANUAL: 1
     steps:
-      # 如果是手动触发，就设置保留天数为1
-      - name: Set retention days for manual trigger
-        if: github.event_name == 'workflow_dispatch'
-        run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_MANUAL }}" >> $GITHUB_ENV
-
-      # 如果是定时触发，就设置保留天数为7
-      - name: Set retention days for scheduled trigger
-        if: github.event_name == 'schedule'
-        run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
-
-      # 输出调试信息，确认设置是否正确
-      - name: Debug Info
-        run: echo "Event:${{ github.event_name }}" && echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
-
-      # 使用 GitHub Script 执行自定义删除操作
-      - name: Delete old workflow runs
-        uses: actions/github-script@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete
+        uses: GitRML/delete-workflow-runs@main
         with:
-          script:            const { Octokit } = require("@octokit/rest");
-            const octokit = new Octokit({ auth:process.env.GITHUB_TOKEN });
-
-            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-            const retainDays = parseInt(process.env.RETAIN_DAYS, 10);
-            const cutoffDate = new Date(Date.now() - (retainDays * 24 * 60 * 60 * 1000));
-
-            async function listWorkflowRuns(page = 1, perPage = 100) {
-              const result = await octokit.actions.listWorkflowRunsForRepo({
-                owner,
-                repo,
-                per_page:perPage,
-                page,
-              });
-              return result.data.workflow_runs;
-            }
-
-            async function deleteWorkflowRun(runId) {
-              await octokit.actions.deleteWorkflowRun({
-                owner,
-                repo,
-                run_id:runId,
-              });
-              console.log(`Deleted run:${runId}`);
-            }
-
-            async function cleanup() {
-              let page = 1;
-              let runs = [];
-              let fetchedRuns = [];
-
-              // Fetch all workflow runs
-              do {
-                fetchedRuns = await listWorkflowRuns(page++);
-                runs = runs.concat(fetchedRuns);
-              } while (fetchedRuns.length > 0);
-
-              // Sort runs by creation date descending
-              runs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-              for (const run of runs) {
-                if (new Date(run.created_at) < cutoffDate && run.status !== "in_progress" && run.status !== "queued") {
-                  await deleteWorkflowRun(run.id);
-                }
-              }
-            }
-
-            cleanup().catch(err => {
-              console.error(`Error during cleanup:${err}`);
-              process.exit(1);
-            });
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 1
