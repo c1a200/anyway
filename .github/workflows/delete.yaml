@@ -23,12 +23,7 @@ jobs:
       - name: Set retention days for scheduled trigger
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
-
-      # 输出调试信息，确认设置是否正确
-      - name: Debug Info
-        run:          echo "Event: ${{ github.event_name }}"
-          echo "RETAIN_DAYS: ${{ env.RETAIN_DAYS }}"
-
+  
       # 使用 Personal Access Token 而不是 GITHUB_TOKEN
       - name: Delete old workflow runs
         uses: GitRML/delete-workflow-runs@main
