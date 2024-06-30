@@ -57,7 +57,7 @@ jobs:
           fi
 
       - name: Convert to V2ray Subscriptions
-        run: python -u collectvray.py
+        run: python -u subscribe/collectvray.py --all --both --overwrite --skip
 
       - name: Timestamp
         run: date
