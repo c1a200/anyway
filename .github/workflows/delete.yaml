@@ -3,6 +3,7 @@ on:
   schedule:
     - cron: "0 0 * * SUN"
   workflow_dispatch:
+
 jobs:
   del_runs:
     runs-on: ubuntu-latest
@@ -10,6 +11,6 @@ jobs:
       - name: Delete
         uses: GitRML/delete-workflow-runs@main
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.GIST_PAT }}
           repository: ${{ github.repository }}
           retain_days: 1
