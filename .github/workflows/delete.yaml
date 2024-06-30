@@ -1,5 +1,5 @@
 name: Delete
-# 定义触发事件，包括定时触发和手动触发。手动触发时保留一天的数据，定时触发时保留7天的数据。
+# 定义触发事件，包括定时触发和手动触发，手动触发时只保留一天的数据，自动执行时保留7天的数据。
 on:
   schedule:
     # 每周日午夜定时触发
@@ -24,10 +24,16 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
-      # 使用 Personal Access Token 而不是 GITHUB_TOKEN
+      # 输出调试信息，确认设置是否正确（推荐）
+      - name: Debug Info
+        run: echo "Event:${{ github.event_name }}"
+          echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
+
+      # 执行删除操作，使用上一步设置的环境变量作为保留天数
       - name: Delete old workflow runs
         uses: GitRML/delete-workflow-runs@main
         with:
           token: ${{ secrets.GIST_PAT }} # 使用存储在 secrets 中的 Personal Access Token
           repository: ${{ github.repository }} # 当前仓库的名称
           retain_days: ${{ env.RETAIN_DAYS }} # 动态保留天数，根据触发类型不同而不同
+          keep_minimum_runs: 3
