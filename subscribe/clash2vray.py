@@ -11,10 +11,8 @@ def fetch_gist_content(gist_url, headers):
     return response.json()
 
 def update_gist_content(gist_url, headers, files_update):
-    print("Updating Gist with data:", files_update)  # 调试信息
     response = requests.patch(gist_url, headers=headers, json={"files": files_update})
     response.raise_for_status()
-    print("Gist update response:", response.json())  # 调试信息
     return response.json()
 
 def clash_to_v2ray(clash_config):
@@ -70,7 +68,6 @@ def main():
     try:
         v2ray_nodes = clash_to_v2ray(clash_config)
         combined_v2ray_content = "\n".join(v2ray_nodes)
-        print("Combined V2ray Content:", combined_v2ray_content)  # 只打印组合好的 V2Ray 节点内容
 
         # 更新 Gist 中的 v2ray.txt 文件
         files_update = {
