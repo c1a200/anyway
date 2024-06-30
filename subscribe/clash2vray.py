@@ -34,27 +34,29 @@ def clash_to_v2ray(clash_config):
             "path": proxy.get("path", ""),
             "tls": "tls" if proxy.get("tls", False) else ""
         }
-        # No need to print each node separately
         v2ray_nodes.append("vmess://" + base64.urlsafe_b64encode(json.dumps(v2ray_node).encode()).decode())
     return v2ray_nodes
 
 def main():
     gist_pat = os.getenv("GIST_PAT")
-    gist_link = os.getenv("GIST_LINK")
+    clash_gist_link = os.getenv("GIST_LINK")
+    v2ray_gist_link = os.getenv("V2RAY_GIST_LINK")
 
-    if not gist_pat or not gist_link:
-        print("Error: Environment variables GIST_PAT and GIST_LINK must be set", file=sys.stderr)
+    if not gist_pat or not clash_gist_link or not v2ray_gist_link:
+        print("Error: Environment variables GIST_PAT, GIST_LINK and V2RAY_GIST_LINK must be set", file=sys.stderr)
         sys.exit(1)
 
     headers = {
         'Authorization': f'token {gist_pat}'
     }
-    gist_id = gist_link.split('/')[-1]
-    gist_url = f'https://api.github.com/gists/{gist_id}'
+    clash_gist_id = clash_gist_link.split('/')[-1]
+    clash_gist_url = f'https://api.github.com/gists/{clash_gist_id}'
+    v2ray_gist_id = v2ray_gist_link.split('/')[-1]
+    v2ray_gist_url = f'https://api.github.com/gists/{v2ray_gist_id}'
 
     # 获取 Gist 内容并读取 clash.yaml 文件
     try:
-        gist_content = fetch_gist_content(gist_url, headers)
+        gist_content = fetch_gist_content(clash_gist_url, headers)
         if 'clash.yaml' not in gist_content['files']:
             print("Error: clash.yaml not found in the Gist", file=sys.stderr)
             sys.exit(1)
@@ -76,7 +78,7 @@ def main():
                 'content': combined_v2ray_content
             }
         }
-        update_gist_content(gist_url, headers, files_update)
+        update_gist_content(v2ray_gist_url, headers, files_update)
         print("Successfully updated the Gist with new V2ray content.")
     except Exception as e:
         print(f"Error converting Clash config or updating Gist: {e}", file=sys.stderr)
