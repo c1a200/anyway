@@ -20,61 +20,51 @@ jobs:
         if: github.event_name == 'schedule'
         run: echo "RETAIN_DAYS=${{ env.RETAIN_DAYS_AUTO }}" >> $GITHUB_ENV
 
-      - name: Debug Info
-        run:          echo "Event:${{ github.event_name }}"
-          echo "RETAIN_DAYS:${{ env.RETAIN_DAYS }}"
-
       - name: List and delete old workflow runs
-        id: delete-runs
         uses: actions/github-script@v6
         with:
-          script:            const axios = require('axios');
+          script: const { Octokit } = require("@octokit/rest");
+            const octokit = new Octokit({
+              auth:process.env.GITHUB_TOKEN
+            });
+
+            const daysToMillis = days => days * 24 * 60 * 60 * 1000;
+            const retainDays = parseInt(process.env.RETAIN_DAYS);
+            const cutoffDate = new Date(Date.now() - daysToMillis(retainDays));
 
             const getRuns = async (page) => {
-              const response = await axios.get(`https://api.github.com/repos/${{ github.repository }}/actions/runs`, {
-                headers:{
-                  Authorization:`Bearer ${{ secrets.GITHUB_TOKEN }}`,
-                  'Content-Type':'application/json',
-                  Accept:'application/vnd.github.v3+json',
-                },
-                params:{
-                  per_page:100,
-                  page:page,
-                },
+              const runs = await octokit.actions.listWorkflowRunsForRepo({
+                owner:context.repo.owner,
+                repo:context.repo.repo,
+                per_page:100,
+                page:page
               });
-              return response.data.workflow_runs;
+              return runs.data.workflow_runs;
             };
 
             const deleteRun = async (runId) => {
-              const response = await axios.delete(`https://api.github.com/repos/${{ github.repository }}/actions/runs/${runId}`, {
-                headers:{
-                  Authorization:`Bearer ${{ secrets.GITHUB_TOKEN }}`,
-                  'Content-Type':'application/json',
-                  Accept:'application/vnd.github.v3+json',
-                },
+              await octokit.actions.deleteWorkflowRun({
+                owner:context.repo.owner,
+                repo:context.repo.repo,
+                run_id:runId
               });
-              return response.status === 204;
             };
 
-            const daysToMillis = days => days * 24 * 60 * 60 * 1000;
-            const now = new Date();
-            const retainDays = parseInt(process.env.RETAIN_DAYS);
-            const cutoffDate = new Date(now - daysToMillis(retainDays));
-
-            let page = 1;
-            let runs = await getRuns(page);
-
-            while (runs.length > 0) {
-              for (const run of runs) {
-                if (new Date(run.created_at) < cutoffDate && run.status !== 'in_progress' && run.status !== 'queued') {
-                  const deleted = await deleteRun(run.id);
-                  if (deleted) {
-                    console.log(`Deleted run:${run.id}`);
-                  } else {
-                    console.log(`Failed to delete run:${run.id}`);
+            const cleanup = async () => {
+              let page = 1;
+              let runs;
+              do {
+                runs = await getRuns(page);
+                for (const run of runs) {
+                  if (new Date(run.created_at) < cutoffDate && run.status !== 'in_progress' && run.status !== 'queued') {
+                    console.log(`Deleting run:${run.id} created at:${run.created_at}`);
+                    await deleteRun(run.id);
                   }
                 }
-              }
-              page += 1;
-              runs = await getRuns(page);
-            }
+                page += 1;
+              } while (runs.length > 0);
+            };
+
+            cleanup().catch(error => {
+              console.error(`Error deleting runs:${error.message}`);
+            });
