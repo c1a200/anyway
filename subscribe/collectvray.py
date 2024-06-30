@@ -5,90 +5,78 @@ import json
 import os
 import sys
 
-# 获取自定义链接
-def get_custom_links(customize_link):
-    try:
-        response = requests.get(customize_link)
-        response.raise_for_status()
-        return response.text.splitlines()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching custom links: {e}", file=sys.stderr)
-        return []
-
 # 将 Clash 配置转换为 V2ray 节点配置
 def clash_to_v2ray(clash_config):
-    servers = yaml.safe_load(clash_config).get('proxies', [])
+    proxies = yaml.safe_load(clash_config).get('proxies', [])
     v2ray_nodes = []
 
-    for server in servers:
+    for proxy in proxies:
         v2ray_node = {
             "v": "2",
-            "ps": server.get("name", ""),
-            "add": server.get("server", ""),
-            "port": str(server.get("port", "")),
-            "id": server.get("uuid", ""),
-            "aid": str(server.get("alterId", "0")),
-            "net": server.get("network", "tcp"),
+            "ps": proxy.get("name", ""),
+            "add": proxy.get("server", ""),
+            "port": str(proxy.get("port", "")),
+            "id": proxy.get("uuid", ""),
+            "aid": str(proxy.get("alterId", "0")),
+            "net": proxy.get("network", "tcp"),
             "type": "none",
-            "host": server.get("host", ""),
-            "path": server.get("path", ""),
-            "tls": "tls" if server.get("tls", False) else ""
+            "host": proxy.get("host", ""),
+            "path": proxy.get("path", ""),
+            "tls": "tls" if proxy.get("tls", False) else ""
         }
-        v2ray_nodes.append(v2ray_node)
+        v2ray_nodes.append("vmess://" + base64.urlsafe_b64encode(json.dumps(v2ray_node).encode()).decode())
+    return v2ray_nodes
 
-    return json.dumps(v2ray_nodes)
+# 生成新的 V2ray 配置内容，并更新到 Gist
+def update_gist_with_v2ray(gist_url, headers, clash_config):
+    v2ray_nodes = clash_to_v2ray(clash_config)
+    combined_v2ray_content = "\n".join(v2ray_nodes)
 
-# 生成 base64 编码的 V2ray 订阅链接
-def generate_v2ray_subscription(v2ray_config):
-    base64_config = base64.urlsafe_b64encode(v2ray_config.encode()).decode()
-    return f"vmess://{base64_config}"
+    # 获取当前 Gist 内容
+    gist_response = requests.get(gist_url, headers=headers)
+    gist_response.raise_for_status()
+    gist_content = gist_response.json()
+    files_content = gist_content.get('files', {})
 
-# 主函数
+    # 更新或添加 v2ray.txt 文件内容
+    files_content['v2ray.txt'] = {
+        "content": combined_v2ray_content
+    }
+
+    # 更新 Gist 内容
+    update_response = requests.patch(gist_url, headers=headers, json={"files": files_content})
+    update_response.raise_for_status()
+    print("Successfully updated the Gist with new V2ray content.")
+
 def main():
     gist_pat = os.getenv("GIST_PAT")
     gist_link = os.getenv("GIST_LINK")
-    customize_link = os.getenv("CUSTOMIZE_LINK")
 
     if not gist_pat or not gist_link:
         print("Error: Environment variables GIST_PAT and GIST_LINK must be set", file=sys.stderr)
         sys.exit(1)
-    
-    custom_links = get_custom_links(customize_link)
-    v2ray_content = []
 
-    for link in custom_links:
-        try:
-            response = requests.get(link)
-            response.raise_for_status()
-            clash_config = response.text
-            v2ray_config = clash_to_v2ray(clash_config)
-            v2ray_subscription = generate_v2ray_subscription(v2ray_config)
-            v2ray_content.append(v2ray_subscription)
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching clash config from link {link}: {e}", file=sys.stderr)
+    headers = {
+        'Authorization': f'token {gist_pat}'
+    }
+    gist_id = gist_link.split('/')[-1]
+    gist_url = f'https://api.github.com/gists/{gist_id}'
 
-    if v2ray_content:
-        combined_v2ray_content = "\n".join(v2ray_content)
-        
-        headers = {
-            'Authorization': f'token {gist_pat}'
-        }
-        gist_id = gist_link.split('/')[-1]
-        gist_url = f'https://api.github.com/gists/{gist_id}'
-
+    # 获取 Gist 内容并读取 clash.yaml 文件
+    try:
         gist_response = requests.get(gist_url, headers=headers)
         gist_response.raise_for_status()
-
         gist_content = gist_response.json()
-        files_content = gist_content.get('files', {})
+        clash_config = gist_content['files']['clash.yaml']['content']
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching Gist content: {e}", file=sys.stderr)
+        sys.exit(1)
+    except KeyError as e:
+        print(f"Error: {e} not found in the Gist content.", file=sys.stderr)
+        sys.exit(1)
 
-        # 更新或添加 V2ray 文件内容
-        files_content['v2ray.txt'] = {
-            "content": combined_v2ray_content
-        }
-
-        update_response = requests.patch(gist_url, headers=headers, json={"files": files_content})
-        update_response.raise_for_status()
+    # 更新 Gist with new V2ray content
+    update_gist_with_v2ray(gist_url, headers, clash_config)
 
 if __name__ == "__main__":
     main()
