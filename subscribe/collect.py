@@ -27,11 +27,11 @@ from workflow import TaskConfig
 import clash
 import subconverter
 
+# 设置项目路径和数据路径
 PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-
 DATA_BASE = os.path.join(PATH, "data")
 
-
+# 定义任务分配函数
 def assign(
     bin_name: str,
     domains_file: str = "",
@@ -42,24 +42,27 @@ def assign(
     num_threads: int = 0,
     **kwargs,
 ) -> list[TaskConfig]:
+
+    # 定义加载现有订阅的函数
     def load_exist(username: str, gist_id: str, access_token: str, filename: str) -> list[str]:
         if not filename:
             return []
 
         subscriptions = set()
-
         pattern = r"^https?:\/\/[^\s]+"
         local_file = os.path.join(DATA_BASE, filename)
+
+        # 从本地文件加载订阅
         if os.path.exists(local_file) and os.path.isfile(local_file):
             with open(local_file, "r", encoding="utf8") as f:
                 items = re.findall(pattern, str(f.read()), flags=re.M)
                 if items:
                     subscriptions.update(items)
 
+        # 从Gist加载订阅
         if username and gist_id and access_token:
             push_tool = push.PushToGist(token=access_token)
             url = push_tool.raw_url(push_conf={"username": username, "gistid": gist_id, "filename": filename})
-
             content = utils.http_get(url=url, timeout=30)
             items = re.findall(pattern, content, flags=re.M)
             if items:
@@ -78,6 +81,7 @@ def assign(
 
         return [links[i] for i in range(len(links)) if results[i][0] and not results[i][1]]
 
+    # 定义解析域名的函数
     def parse_domains(content: str) -> dict:
         if not content or not isinstance(content, str):
             logger.warning("cannot found any domain due to content is empty or not string")
@@ -108,18 +112,13 @@ def assign(
     subscriptions = load_exist(username, gist_id, access_token, subscribes_file)
     logger.info(f"load exists subscription finished, count: {len(subscriptions)}")
 
-    # 是否允许特殊协议
+    # 检查是否允许特殊协议
     special_protocols = AirPort.enable_special_protocols()
 
-    tasks = (
-        [
-            TaskConfig(name=utils.random_chars(length=8), sub=x, bin_name=bin_name, special_protocols=special_protocols)
-            for x in subscriptions
-            if x
-        ]
-        if subscriptions
-        else []
-    )
+    tasks = [
+        TaskConfig(name=utils.random_chars(length=8), sub=x, bin_name=bin_name, special_protocols=special_protocols)
+        for x in subscriptions if x
+    ]
 
     # 仅更新已有订阅
     if tasks and kwargs.get("refresh", False):
@@ -127,12 +126,10 @@ def assign(
         return tasks
 
     domains, delimiter = {}, "@#@#"
-    domains_file = utils.trim(domains_file)
-    if not domains_file:
-        domains_file = "domains.txt"
+    domains_file = utils.trim(domains_file) or "domains.txt"
+    fullpath = os.path.join(DATA_BASE, domains_file)
 
     # 加载已有站点列表
-    fullpath = os.path.join(DATA_BASE, domains_file)
     if os.path.exists(fullpath) and os.path.isfile(fullpath):
         with open(fullpath, "r", encoding="UTF8") as f:
             domains.update(parse_domains(content=str(f.read())))
@@ -154,9 +151,7 @@ def assign(
             for k, v in candidates.items():
                 item = domains.get(k, {})
                 item["coupon"] = v
-
                 domains[k] = item
-
             overwrite = True
 
     # 加载自定义机场列表
@@ -194,7 +189,7 @@ def assign(
 
     return tasks
 
-
+# 测试节点并选择最佳节点
 def test_and_select_best_nodes(nodes, num_threads, max_nodes, display):
     logger.info(f"start testing {len(nodes)} nodes")
     
@@ -210,15 +205,17 @@ def test_and_select_best_nodes(nodes, num_threads, max_nodes, display):
         show_progress=display,
     )
     
-    node_speed = [(nodes[i], results[i][2]) for i in range(len(nodes)) if results[i][0]]
+    # 获取每个节点的速度，并按速度排序
+    node_speed = [(nodes[i], results[i][1]) for i in range(len(nodes)) if results[i][0]]
     node_speed.sort(key=lambda x: x[1])
     
+    # 返回速度最快的节点，不超过max_nodes个
     return [node for node, speed in node_speed[:max_nodes]]
 
-
+# 主函数
 def aggregate(args: argparse.Namespace) -> None:
+    # 解析Gist链接
     def parse_gist_link(link: str) -> tuple[str, str]:
-        # 提取 gist 用户名及 id
         words = utils.trim(link).split("/", maxsplit=1)
         if len(words) != 2:
             logger.error(f"cannot extract username and gist id due to invalid github gist link")
@@ -233,6 +230,7 @@ def aggregate(args: argparse.Namespace) -> None:
     access_token = utils.trim(args.key)
     username, gist_id = parse_gist_link(args.gist)
 
+    # 分配任务
     tasks = assign(
         bin_name=subconverter_bin,
         domains_file="domains.txt",
@@ -262,6 +260,7 @@ def aggregate(args: argparse.Namespace) -> None:
     if os.path.exists(generate_conf) and os.path.isfile(generate_conf):
         os.remove(generate_conf)
 
+    # 执行任务
     results = utils.multi_thread_run(func=workflow.executewrapper, tasks=tasks, num_threads=args.num)
     proxies = list(itertools.chain.from_iterable([x[1] for x in results if x]))
 
@@ -278,7 +277,6 @@ def aggregate(args: argparse.Namespace) -> None:
         filename = "config.yaml"
         proxies = clash.generate_config(workspace, list(proxies), filename)
 
-        # 可执行权限
         utils.chmod(binpath)
 
         logger.info(f"startup clash now, workspace: {workspace}, config: {filename}")
