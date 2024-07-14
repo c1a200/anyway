@@ -621,7 +621,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-y",
         "--yourself",
-        type.str,
+        type=str,
         required=False,
         default=os.environ.get("CUSTOMIZE_LINK", ""),
         help="the url to the list of airports that you maintain yourself",
