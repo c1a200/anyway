@@ -1,7 +1,7 @@
 name: Sub-Collect
 on:
   schedule:
-    - cron: "0 2 * * *"  # 每天早上 2:00 执行一次
+    - cron: "0 4 * * *"  # 每天早上 4:00 执行一次
   workflow_dispatch:
 
 concurrency:
@@ -18,6 +18,9 @@ env:
   # github username and gist id, separated by '/'
   GIST_USERNAME: ${{ secrets.GIST_USERNAME }}
   GIST_ID: ${{ secrets.GIST_ID }}
+
+  # V2RAY gist link
+  V2RAY_GIST_LINK: ${{ secrets.V2RAY_GIST_LINK }}
 
 jobs:
   process:
@@ -48,6 +51,11 @@ jobs:
 
           if [ -z "$GIST_USERNAME" ] || [ -z "$GIST_ID" ]; then
               echo "Error: environment 'GIST_USERNAME' or 'GIST_ID' cannot be empty"
+              exit 1
+          fi
+
+          if [ -z "$V2RAY_GIST_LINK" ]; then
+              echo "Error: environment 'V2RAY_GIST_LINK' cannot be empty"
               exit 1
           fi
 
