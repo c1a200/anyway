@@ -15,11 +15,8 @@ env:
   # github access token
   GIST_PAT: ${{ secrets.GIST_PAT }}
 
-  # github username and gist id
-  GIST_USERNAME: ${{ secrets.GIST_USERNAME }}
-  GIST_ID: ${{ secrets.GIST_ID }}
-
-  # V2RAY gist link
+  # github gist links
+  GIST_LINK: ${{ secrets.GIST_LINK }}
   V2RAY_GIST_LINK: ${{ secrets.V2RAY_GIST_LINK }}
 
 jobs:
@@ -49,13 +46,8 @@ jobs:
               exit 1
           fi
 
-          if [ -z "$GIST_USERNAME" ]; then
-              echo "Error: environment 'GIST_USERNAME' cannot be empty"
-              exit 1
-          fi
-
-          if [ -z "$GIST_ID" ]; then
-              echo "Error: environment 'GIST_ID' cannot be empty"
+          if [ -z "$GIST_LINK" ]; then
+              echo "Error: environment 'GIST_LINK' cannot be empty"
               exit 1
           fi
 
@@ -67,8 +59,7 @@ jobs:
       - name: Filter and Upload Fastest Proxies
         env:
           GIST_PAT: ${{ secrets.GIST_PAT }}
-          GIST_USERNAME: ${{ secrets.GIST_USERNAME }}
-          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_LINK: ${{ secrets.GIST_LINK }}
           V2RAY_GIST_LINK: ${{ secrets.V2RAY_GIST_LINK }}
         run: python -u subscribe/sub-col.py
 
