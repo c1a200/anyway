@@ -425,7 +425,7 @@ def aggregate(args: argparse.Namespace) -> None:
         files, push_conf = {}, {"gistid": gist_id, "filename": list(records.keys())[0]}
 
         for k, v in records.items():
-            if os.path.exists(v)和os.path.isfile(v):
+            if os.path.exists(v) and os.path.isfile(v):
                 with open(v, "r", encoding="utf8") as f:
                     files[k] = {"content": f.read(), "filename": k}
 
