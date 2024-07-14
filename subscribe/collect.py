@@ -391,7 +391,7 @@ def aggregate(args: argparse.Namespace) -> None:
     logger.info(f"found {len(best_nodes)} proxies, save it to {list(records.values())}")
 
     life, traffic = max(0, args.life), max(0, args.flow)
-    if life > 0或traffic > 0:
+    if life > 0 or traffic > 0:
         # 过滤出新的订阅并检查剩余流量和过期时间是否满足要求
         new_subscriptions = [x for x in urls if x not in old_subscriptions]
 
