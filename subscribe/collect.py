@@ -94,7 +94,7 @@ def assign(
             if not line or line.startswith("#"):
                 continue
 
-            words = line.rsplit(delimiter, maxsplit=2)
+            words = line.rsplit("@#@#", maxsplit=2)
             address = utils.trim(words[0])
             coupon = utils.trim(words[1]) if len(words) > 1 else ""
             invite_code = utils.trim(words[2]) if len(words) > 2 else ""
@@ -126,7 +126,7 @@ def assign(
         logger.info("skip registering new accounts, will use existing subscriptions for refreshing")
         return tasks
 
-    domains, delimiter = {}, "@#@#"
+    domains = {}
     domains_file = utils.trim(domains_file) or "domains.txt"
     fullpath = os.path.join(DATA_BASE, domains_file)
 
@@ -144,7 +144,7 @@ def assign(
             rigid=rigid,
             display=display,
             filepath=os.path.join(DATA_BASE, "coupons.txt"),
-            delimiter=delimiter,
+            delimiter="@#@#",
             chuck=chuck,
         )
 
@@ -171,7 +171,7 @@ def assign(
         return tasks
 
     if overwrite:
-        crawl.save_candidates(candidates=domains, filepath=fullpath, delimiter=delimiter)
+        crawl.save_candidates(candidates=domains, filepath=fullpath, delimiter="@#@#")
 
     for domain, param in domains.items():
         name = crawl.naming_task(url=domain)
@@ -207,7 +207,7 @@ def test_and_select_best_nodes(nodes, num_threads, max_nodes, display):
     )
     
     # 获取每个节点的速度，并按速度排序
-    node_speed = [(nodes[i], results[i][1]) for i in range(len(nodes)) if results[i][0]]
+    node_speed = [(nodes[i], results[i][1]) for i in range(len(nodes)) if isinstance(results[i], tuple) and results[i][0]]
     node_speed.sort(key=lambda x: x[1])
     
     # 返回速度最快的节点，不超过max_nodes个
@@ -621,7 +621,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-y",
         "--yourself",
-        type=str,
+        type.str,
         required=False,
         default=os.environ.get("CUSTOMIZE_LINK", ""),
         help="the url to the list of airports that you maintain yourself",
