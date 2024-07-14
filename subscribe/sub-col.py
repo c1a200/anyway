@@ -52,7 +52,7 @@ def clash_to_v2ray(clash_config):
         v2ray_nodes.append("vmess://" + base64.urlsafe_b64encode(json.dumps(v2ray_node).encode()).decode())
     return v2ray_nodes
 
-def load_subscriptions(username: str, gist_id: str, access_token: str, filename: str) -> list[str]:
+def load_subscriptions(gist_url: str, headers: dict, filename: str) -> list[str]:
     if not filename:
         return []
 
@@ -66,17 +66,12 @@ def load_subscriptions(username: str, gist_id: str, access_token: str, filename:
             if items:
                 subscriptions.update(items)
 
-    if username and gist_id and access_token:
-        gist_url = f'https://api.github.com/gists/{gist_id}'
-        headers = {
-            'Authorization': f'token {access_token}'
-        }
-        gist_content = fetch_gist_content(gist_url, headers)
-        if filename in gist_content['files']:
-            content = gist_content['files'][filename]['content']
-            items = re.findall(pattern, content, flags=re.M)
-            if items:
-                subscriptions.update(items)
+    gist_content = fetch_gist_content(gist_url, headers)
+    if filename in gist_content['files']:
+        content = gist_content['files'][filename]['content']
+        items = re.findall(pattern, content, flags=re.M)
+        if items:
+            subscriptions.update(items)
 
     return list(subscriptions)
 
@@ -129,15 +124,20 @@ def filter_fastest_proxies(proxies: list, max_count: int = 100) -> list:
 
 def main():
     gist_pat = os.getenv("GIST_PAT")
-    gist_username = os.getenv("GIST_USERNAME")
-    gist_id = os.getenv("GIST_ID")
+    gist_link = os.getenv("GIST_LINK")
     v2ray_gist_link = os.getenv("V2RAY_GIST_LINK")
 
-    if not gist_pat or not gist_username or not gist_id or not v2ray_gist_link:
-        print("Error: Environment variables GIST_PAT, GIST_USERNAME, GIST_ID and V2RAY_GIST_LINK must be set", file=sys.stderr)
+    if not gist_pat or not gist_link or not v2ray_gist_link:
+        print("Error: Environment variables GIST_PAT, GIST_LINK and V2RAY_GIST_LINK must be set", file=sys.stderr)
         sys.exit(1)
 
-    subscriptions = load_subscriptions(gist_username, gist_id, gist_pat, SUBSCRIBES_FILE)
+    headers = {
+        'Authorization': f'token {gist_pat}'
+    }
+    gist_id = gist_link.split('/')[-1]
+    gist_url = f'https://api.github.com/gists/{gist_id}'
+    
+    subscriptions = load_subscriptions(gist_url, headers, SUBSCRIBES_FILE)
     if not subscriptions:
         print("No valid subscriptions found.", file=sys.stderr)
         sys.exit(1)
@@ -163,11 +163,8 @@ def main():
 
     # 上传到 V2RAY_GIST_LINK
     try:
-        gist_id = v2ray_gist_link.split('/')[-1]
-        gist_url = f'https://api.github.com/gists/{gist_id}'
-        headers = {
-            'Authorization': f'token {gist_pat}'
-        }
+        v2ray_gist_id = v2ray_gist_link.split('/')[-1]
+        v2ray_gist_url = f'https://api.github.com/gists/{v2ray_gist_id}'
 
         with open(output_file, "r", encoding="utf8") as f:
             clash_config_content = f.read()
@@ -198,11 +195,4 @@ def main():
                 'content': combined_v2ray_content
             }
         }
-        update_gist_content(gist_url, headers, files_update)
-        print("Successfully updated the Gist with new V2ray content.")
-    except Exception as e:
-        print(f"Error converting Clash config or updating Gist: {e}", file=sys.stderr)
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+        update_gist
