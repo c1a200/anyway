@@ -12,6 +12,8 @@ import utils
 import clash
 from logger import logger
 from push import PushToGist
+from workflow import TaskConfig
+import executable
 
 PATH = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 DATA_BASE = os.path.join(PATH, "data")
@@ -121,6 +123,18 @@ def main():
         yaml.dump(data, f, allow_unicode=True)
 
     logger.info(f"Found {len(fastest_proxies)} fastest proxies, saved to {output_file}")
+
+    # 上传到 Gist
+    if username and gist_id and access_token:
+        push_tool = PushToGist(token=access_token)
+        files = {
+            "fastest_proxies.yaml": {"content": open(output_file, "r", encoding="utf8").read()}
+        }
+        success = push_tool.push_to(content="", push_conf={"username": username, "gistid": gist_id, "filename": "fastest_proxies.yaml"}, payload={"files": files})
+        if success:
+            logger.info("Uploaded fastest proxies to Gist successfully.")
+        else:
+            logger.error("Failed to upload fastest proxies to Gist.")
 
 if __name__ == "__main__":
     main()
