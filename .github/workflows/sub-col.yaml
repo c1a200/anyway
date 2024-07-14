@@ -1,0 +1,58 @@
+name: Sub-Collect
+on:
+  schedule:
+    - cron: "0 2 * * *"  # 每天早上 2:00 执行一次
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}
+  cancel-in-progress: true
+
+env:
+  # time zone
+  TZ: Asia/Shanghai
+
+  # github access token
+  GIST_PAT: ${{ secrets.GIST_PAT }}
+
+  # github username and gist id, separated by '/'
+  GIST_USERNAME: ${{ secrets.GIST_USERNAME }}
+  GIST_ID: ${{ secrets.GIST_ID }}
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Prepare
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+          architecture: "x64"
+          cache: "pip"
+
+      - name: Install
+        run: pip3 install -r requirements.txt
+
+      - name: Check
+        run: |
+          if [ -z "$GIST_PAT" ]; then
+              echo "Error: environment 'GIST_PAT' cannot be empty"
+              exit 1
+          fi
+
+          if [ -z "$GIST_USERNAME" ] || [ -z "$GIST_ID" ]; then
+              echo "Error: environment 'GIST_USERNAME' or 'GIST_ID' cannot be empty"
+              exit 1
+          fi
+
+      - name: Filter and Upload Fastest Proxies
+        run: python -u subscribe/sub-col.py
+
+      - name: Timestamp
+        run: date
