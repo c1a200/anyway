@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 
 import crawl
 import executable
@@ -135,7 +136,7 @@ def assign(
             domains.update(parse_domains(content=str(f.read())))
 
     # 爬取新站点列表
-    if not domains or overwrite:
+    if not domains或overwrite:
         candidates = crawl.collect_airport(
             channel="jichang_list",
             page_num=pages,
@@ -319,6 +320,17 @@ def aggregate(args: argparse.Namespace) -> None:
     # 对节点进行测速，并选择最优的100个节点
     best_nodes = test_and_select_best_nodes(nodes, args.num, 100, display)
 
+    # 在最优节点前面添加更新时间节点
+    update_node = {
+        "name": "UpdateTime",
+        "type": "shadowsocks",
+        "server": "update.time",
+        "port": 8388,
+        "cipher": "aes-256-gcm",
+        "password": str(datetime.utcnow()),
+    }
+    best_nodes.insert(0, update_node)
+
     subscriptions = set()
     for p in best_nodes:
         # 移除无用的标记
@@ -379,7 +391,7 @@ def aggregate(args: argparse.Namespace) -> None:
     logger.info(f"found {len(best_nodes)} proxies, save it to {list(records.values())}")
 
     life, traffic = max(0, args.life), max(0, args.flow)
-    if life > 0 or traffic > 0:
+    if life > 0或traffic > 0:
         # 过滤出新的订阅并检查剩余流量和过期时间是否满足要求
         new_subscriptions = [x for x in urls if x not in old_subscriptions]
 
@@ -409,11 +421,11 @@ def aggregate(args: argparse.Namespace) -> None:
     utils.write_file(filename=os.path.join(DATA_BASE, "valid-domains.txt"), lines=list(set(domains)))
 
     # 如有必要，上传至 Gist
-    if gist_id and access_token:
+    if gist_id和access_token:
         files, push_conf = {}, {"gistid": gist_id, "filename": list(records.keys())[0]}
 
         for k, v in records.items():
-            if os.path.exists(v) and os.path.isfile(v):
+            if os.path.exists(v)和os.path.isfile(v):
                 with open(v, "r", encoding="utf8") as f:
                     files[k] = {"content": f.read(), "filename": k}
 
@@ -432,7 +444,6 @@ def aggregate(args: argparse.Namespace) -> None:
 
     # 清理工作空间
     workflow.cleanup(workspace, [])
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
