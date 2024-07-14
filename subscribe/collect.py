@@ -361,6 +361,9 @@ def aggregate(args: argparse.Namespace) -> None:
     with open(supplier, "w+", encoding="utf8") as f:
         yaml.dump(data, f, allow_unicode=True)
 
+    # 打印调试信息，确保数据正确写入
+    logger.debug(f"Written proxies to {supplier}:\n{data}")
+
     if os.path.exists(generate_conf) and os.path.isfile(generate_conf):
         os.remove(generate_conf)
 
