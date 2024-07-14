@@ -95,6 +95,7 @@ def main():
     username = os.environ.get("GIST_USERNAME", "")
     gist_id = os.environ.get("GIST_ID", "")
     access_token = os.environ.get("GIST_PAT", "")
+    v2ray_gist_link = os.environ.get("V2RAY_GIST_LINK", "")
     
     if not username or not gist_id or not access_token:
         logger.error("Gist credentials are not provided.")
@@ -124,17 +125,18 @@ def main():
 
     logger.info(f"Found {len(fastest_proxies)} fastest proxies, saved to {output_file}")
 
-    # 上传到 Gist
-    if username and gist_id and access_token:
+    # 上传到 V2RAY_GIST_LINK
+    if v2ray_gist_link:
+        gist_username, gist_id = v2ray_gist_link.split('/')
         push_tool = PushToGist(token=access_token)
         files = {
             "fastest_proxies.yaml": {"content": open(output_file, "r", encoding="utf8").read()}
         }
-        success = push_tool.push_to(content="", push_conf={"username": username, "gistid": gist_id, "filename": "fastest_proxies.yaml"}, payload={"files": files})
+        success = push_tool.push_to(content="", push_conf={"username": gist_username, "gistid": gist_id, "filename": "fastest_proxies.yaml"}, payload={"files": files})
         if success:
-            logger.info("Uploaded fastest proxies to Gist successfully.")
+            logger.info("Uploaded fastest proxies to V2RAY Gist successfully.")
         else:
-            logger.error("Failed to upload fastest proxies to Gist.")
+            logger.error("Failed to upload fastest proxies to V2RAY Gist.")
 
 if __name__ == "__main__":
     main()
