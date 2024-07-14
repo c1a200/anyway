@@ -136,7 +136,7 @@ def assign(
             domains.update(parse_domains(content=str(f.read())))
 
     # 爬取新站点列表
-    if not domains或overwrite:
+    if not domains or overwrite:
         candidates = crawl.collect_airport(
             channel="jichang_list",
             page_num=pages,
@@ -421,7 +421,7 @@ def aggregate(args: argparse.Namespace) -> None:
     utils.write_file(filename=os.path.join(DATA_BASE, "valid-domains.txt"), lines=list(set(domains)))
 
     # 如有必要，上传至 Gist
-    if gist_id和access_token:
+    if gist_id and access_token:
         files, push_conf = {}, {"gistid": gist_id, "filename": list(records.keys())[0]}
 
         for k, v in records.items():
