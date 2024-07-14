@@ -1,7 +1,7 @@
 name: Sub-Collect
 on:
   schedule:
-    - cron: "0 3 * * *"  # 每天早上 3:00 执行一次
+    - cron: "0 2 * * *"  # 每天早上 2:00 执行一次
   workflow_dispatch:
 
 concurrency:
@@ -49,8 +49,13 @@ jobs:
               exit 1
           fi
 
-          if [ -z "$GIST_USERNAME" ] || [ -z "$GIST_ID" ]; then
-              echo "Error: environment 'GIST_USERNAME' or 'GIST_ID' cannot be empty"
+          if [ -z "$GIST_USERNAME" ]; then
+              echo "Error: environment 'GIST_USERNAME' cannot be empty"
+              exit 1
+          fi
+
+          if [ -z "$GIST_ID" ]; then
+              echo "Error: environment 'GIST_ID' cannot be empty"
               exit 1
           fi
 
@@ -60,6 +65,11 @@ jobs:
           fi
 
       - name: Filter and Upload Fastest Proxies
+        env:
+          GIST_PAT: ${{ secrets.GIST_PAT }}
+          GIST_USERNAME: ${{ secrets.GIST_USERNAME }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          V2RAY_GIST_LINK: ${{ secrets.V2RAY_GIST_LINK }}
         run: python -u subscribe/sub-col.py
 
       - name: Timestamp
