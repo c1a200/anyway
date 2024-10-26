@@ -1,7 +1,7 @@
 name: Collect
 on:
   schedule:
-    - cron: "0 1 * * *"  # 每天早上 1:00 执行一次
+    - cron: "0 7,17 * * *"  # 每天早上 7:00 和下午 17:00 执行一次
   workflow_dispatch:
 
 concurrency:
